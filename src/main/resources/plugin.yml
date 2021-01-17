@@ -1,0 +1,8 @@
+name: JuggernautTakedown
+version: 1.0
+main: com.brandonjja.jugg.JuggernautTakedown
+author: Brandonjja
+commands:
+  juggernaut:
+    usage: /juggernaut <playerName>
+    description: Sets the desired player to be the Juggernaut
