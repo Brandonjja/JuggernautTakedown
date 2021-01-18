@@ -6,3 +6,12 @@ commands:
   juggernaut:
     usage: /juggernaut <playerName>
     description: Sets the desired player to be the Juggernaut
+  chaser:
+    usage: /chaser
+    description: Sets the current player to a Chaser
+  newgame:
+    usage: /newgame
+    description: Starts a new game manually
+  endgame:
+    usage: /endgame
+    description: Ends a new game manually

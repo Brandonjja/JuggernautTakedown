@@ -1,5 +1,6 @@
 package com.brandonjja.jugg;
 
+import com.brandonjja.jugg.commands.CommandManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class JuggernautTakedown extends JavaPlugin {
@@ -9,6 +10,7 @@ public class JuggernautTakedown extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
+        CommandManager.registerCommands();
     }
 
     @Override
