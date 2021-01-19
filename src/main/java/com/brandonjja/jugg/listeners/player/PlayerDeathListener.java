@@ -12,6 +12,7 @@ public class PlayerDeathListener implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         event.getDrops().clear();
+        Game.getGame().getPlayer(event.getEntity()).updateScoreboardDeaths();
     }
 
     @EventHandler
