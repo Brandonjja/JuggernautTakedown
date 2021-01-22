@@ -24,16 +24,13 @@ public class CompassClickListener implements Listener {
             try {
                 jtPlayer = Game.getGame().getPlayer(potentialPlayerTarget);
                 if (jtPlayer == null) {
-                    Bukkit.getPlayer("Brandonjja").sendMessage("null");
                     return null;
                 }
             } catch (NullPointerException ex) {
-                Bukkit.getPlayer("Brandonjja").sendMessage("null2");
                 return null;
             }
 
             if (potentialPlayerTarget.equals(tracker) || jtPlayer.getRole() != Role.JUGGERNAUT) {
-                Bukkit.getPlayer("Brandonjja").sendMessage("1 per click");
                 continue;
             }
             double distanceTo;
