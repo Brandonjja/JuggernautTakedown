@@ -9,16 +9,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 
 public class PlayerDamageListener implements Listener {
 
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         Game game = Game.getGame();
-        if (game == null) {
+        if (game == null || game.isGracePeriod()) {
             event.setCancelled(true);
             return;
         }
+
         boolean arrow = false;
         if (!(event.getDamager() instanceof Player && event.getEntity() instanceof Player)) {
             //if (!(event.getDamager() instanceof Arrow) && !(event.getEntity() instanceof Player)) {
@@ -53,5 +55,13 @@ public class PlayerDamageListener implements Listener {
         double damage = event.getDamage();
         jtDamager.updateScoreboardDamageDealt(damage);
         jtVictim.updateScoreboardDamageTaken(damage);
+    }
+
+    @EventHandler
+    public void onDamage(EntityDamageEvent event) {
+        Game game = Game.getGame();
+        if (game == null || game.isGracePeriod()) {
+            event.setCancelled(true);
+        }
     }
 }

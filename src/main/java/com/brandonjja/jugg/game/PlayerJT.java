@@ -83,13 +83,13 @@ public class PlayerJT {
 
     public void updateScoreboardApples() {
         objective.getScoreboard().resetScores(applesPrefix + applesEaten);
-        objective.getScore(applesPrefix + ++applesEaten).setScore(4);
+        objective.getScore(applesPrefix + ++applesEaten).setScore(6);
     }
 
     public void updateScoreboardDamageDealt(double damage) {
         objective.getScoreboard().resetScores(damageDealtPrefix + damageDealt);
         damageDealt += damage;
-        objective.getScore(damageDealtPrefix + damageDealt).setScore(4);
+        objective.getScore(damageDealtPrefix + damageDealt).setScore(5);
     }
 
     public void updateScoreboardDamageTaken(double damage) {
@@ -100,13 +100,13 @@ public class PlayerJT {
 
     public void updateScoreboardDeaths() {
         objective.getScoreboard().resetScores(deathsPrefix + deaths);
-        objective.getScore(deathsPrefix + ++deaths).setScore(1);
+        objective.getScore(deathsPrefix + ++deaths).setScore(3);
     }
 
     public void updateScoreboardTime(int time) {
         time++;
         objective.getScoreboard().resetScores(timePrefix + formatTime(time));
-        objective.getScore(timePrefix + formatTime(--time)).setScore(0);
+        objective.getScore(timePrefix + formatTime(--time)).setScore(1);
     }
 
     private String formatTime(int time) {

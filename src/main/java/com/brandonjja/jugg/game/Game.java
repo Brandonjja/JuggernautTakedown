@@ -8,21 +8,21 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class Game {
 
     private static Game currentGame;
 
     private final int chaserCount; // number of chasers
-    private final static int gracePeriod = 4; // time until roles are assigned once a game has started
+    private final static int gracePeriod = 10; // time until roles are assigned once a game has started
     private int gameTimer; // time until the game ends
     private String currentMap; // name of the current map
-    private final List<PlayerJT> gamePlayerList; // list of players in the current game
+    private final Map<String, PlayerJT> gamePlayerList; // list of players in the current game
     private World gameWorld;
+    private boolean isGracePeriod;
 
     private int gracePeriodID = -1;
     private int gameTimerID = -1;
@@ -35,10 +35,11 @@ public class Game {
         }
 
         chaserCount = Bukkit.getOnlinePlayers().size() - 1;
-        gameTimer = 600;
+        gameTimer = 1500;
         currentMap = mapName;
+        isGracePeriod = true;
 
-        gamePlayerList = new ArrayList<>();
+        gamePlayerList = new HashMap<>();
         startGame();
     }
 
@@ -72,6 +73,7 @@ public class Game {
         Location spawnLocation = gameWorld.getSpawnLocation();
         spawnLocation.setY(spawnLocation.getWorld().getHighestBlockYAt(spawnLocation));
         spawnLocation.getWorld().getWorldBorder().setSize(500);
+        gameWorld.setSpawnLocation(spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ());
 
         currentMap = gameWorld.getName();
 
@@ -81,6 +83,11 @@ public class Game {
             player.setFoodLevel(20);
             player.sendMessage(graceMsg);
 
+            player.getInventory().clear();
+            player.getInventory().setHelmet(null);
+            player.getInventory().setChestplate(null);
+            player.getInventory().setLeggings(null);
+            player.getInventory().setBoots(null);
 
             for (PotionEffect potionEffect : player.getActivePotionEffects()) {
                 player.removePotionEffect(potionEffect.getType());
@@ -92,26 +99,32 @@ public class Game {
             List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
             Collections.shuffle(playerList);
 
-            gamePlayerList.add(new PlayerJT(playerList.get(0), Role.JUGGERNAUT));
+            gamePlayerList.put(playerList.get(0).getName(), new PlayerJT(playerList.get(0), Role.JUGGERNAUT));
             playerList.get(0).sendMessage(juggernautRoleMsg);
-            gamePlayerList.get(0).applyRoleKit();
+            gamePlayerList.get(playerList.get(0).getName()).applyRoleKit();
             juggernautName = playerList.get(0).getName();
-            gamePlayerList.get(0).addScoreboard(gameTimer);
+            gamePlayerList.get(playerList.get(0).getName()).addScoreboard(gameTimer);
+            playerList.get(0).addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 1000000, 0));
 
             for (int i = 1; i <= chaserCount; i++) {
-                gamePlayerList.add(new PlayerJT(playerList.get(i), Role.CHASER));
+                gamePlayerList.put(playerList.get(i).getName(), new PlayerJT(playerList.get(i), Role.CHASER));
                 playerList.get(i).sendMessage(chaserRoleMsg);
-                gamePlayerList.get(i).applyRoleKit();
-                gamePlayerList.get(i).addScoreboard(gameTimer);
+                gamePlayerList.get(playerList.get(i).getName()).applyRoleKit();
+                gamePlayerList.get(playerList.get(i).getName()).addScoreboard(gameTimer);
             }
+
+            isGracePeriod = false;
 
             gameTimerID = Bukkit.getScheduler().scheduleSyncRepeatingTask(JuggernautTakedown.getPlugin(), () -> {
                 if (--gameTimer <= 0) {
                     endGame();
                 }
 
-                for (PlayerJT jtPlayer : gamePlayerList) {
+                for (PlayerJT jtPlayer : gamePlayerList.values()) {
                     jtPlayer.updateScoreboardTime(gameTimer);
+                    if (jtPlayer.getRole() == Role.JUGGERNAUT) {
+                        jtPlayer.getPlayer().setRemainingAir(jtPlayer.getPlayer().getRemainingAir() / 2);
+                    }
                 }
 
             }, 20, 20);
@@ -119,6 +132,14 @@ public class Game {
 
         }, (long) (gracePeriod * 20) + 20);
     }
+
+    private final StringBuilder juggernautWinMsg = new StringBuilder()
+            .append(ChatColor.GREEN)
+            .append("Congratulations to the ")
+            .append(ChatColor.RED)
+            .append("Juggernaut")
+            .append(ChatColor.GREEN)
+            .append(" (");
 
     public void endGame() {
         if (gracePeriodID > 0) {
@@ -130,36 +151,76 @@ public class Game {
             gameTimerID = -1;
         }
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.teleport(Bukkit.getWorld("world").getSpawnLocation());
-            player.getInventory().clear();
+        if (currentGame == null) return;
+
+        if (gameTimer <= 0) {
+            juggernautWinMsg.append(ChatColor.AQUA)
+                    .append(juggernautName)
+                    .append(ChatColor.GREEN)
+                    .append(") on surviving this round!\nChasers, better luck next time!");
+            Bukkit.broadcastMessage(juggernautWinMsg.toString());
         }
 
-        if (currentMap != null && !currentMap.equalsIgnoreCase("world")) {
-            FileManager.unloadWorld(gameWorld);
-            FileManager.deleteWorld(gameWorld.getWorldFolder());
-        }
+        isGracePeriod = true;
 
-        currentGame = null;
-        currentMap = "world";
+        Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.spigot().respawn();
+            }
+        }, 4 * 20);
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
-        }
+        Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.teleport(Bukkit.getWorld("world").getSpawnLocation());
+                player.getInventory().clear();
+            }
 
-        gamePlayerList.clear();
+            if (currentMap != null && !currentMap.equalsIgnoreCase("world")) {
+                FileManager.unloadWorld(gameWorld);
+                FileManager.deleteWorld(gameWorld.getWorldFolder());
+            }
 
+            currentMap = "world";
+            currentGame = null;
+
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+            }
+
+            gamePlayerList.clear();
+        }, 10 * 20);
+    }
+
+    public boolean isGracePeriod() {
+        return isGracePeriod;
+    }
+
+    public int getTime() {
+        return gameTimer;
     }
 
     public PlayerJT getPlayer(Player player) {
         if (gamePlayerList != null) {
-            for (PlayerJT playerInGame : gamePlayerList) {
-                if (playerInGame.getPlayer().equals(player)) {
-                    return playerInGame;
-                }
-            }
+            return gamePlayerList.get(player.getName());
         }
         return null;
+    }
+
+    public void addPlayer(Player player) {
+        if (gamePlayerList != null) {
+            Role role = Role.CHASER;
+            if (player.getName().equalsIgnoreCase(juggernautName)) {
+                role = Role.JUGGERNAUT;
+            }
+            gamePlayerList.put(player.getName(), new PlayerJT(player, role));
+        }
+        gamePlayerList.get(player.getName()).addScoreboard(gameTimer);
+    }
+
+    public void removePlayer(Player player) {
+        if (gamePlayerList != null) {
+            gamePlayerList.remove(player.getName());
+        }
     }
 
     public Location getSpawnLocation() {
