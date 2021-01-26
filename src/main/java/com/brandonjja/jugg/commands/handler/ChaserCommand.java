@@ -9,6 +9,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 
 public class ChaserCommand extends JuggernautTakedownCommand {
@@ -46,6 +47,7 @@ public class ChaserCommand extends JuggernautTakedownCommand {
         inventory.clear();
 
         ItemStack item;
+        ItemMeta meta;
 
         item = new ItemStack(Material.IRON_SWORD);
         addUnbreakingEnchant(item);
@@ -70,15 +72,28 @@ public class ChaserCommand extends JuggernautTakedownCommand {
 
         item = new ItemStack(Material.GOLDEN_APPLE, numOfNotchApples);
         item.setDurability((short) 1); // Notch Apple
+        meta = item.getItemMeta();
+        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Notch Apple");
+        item.setItemMeta(meta);
         inventory.addItem(item);
 
         item = new ItemStack(Material.GOLDEN_APPLE, numOfGoldenApples);
+        meta = item.getItemMeta();
+        meta.setDisplayName(ChatColor.YELLOW + "Golden Apple");
+        item.setItemMeta(meta);
         inventory.addItem(item);
 
         item = new ItemStack(Material.COOKED_BEEF, 64);
         inventory.addItem(item);
 
         item = new ItemStack(Material.WOOD, numOfPlanks);
+        inventory.addItem(item);
+
+        item = new ItemStack(Material.STICK);
+        item.addUnsafeEnchantment(Enchantment.KNOCKBACK, 1);
+        meta = item.getItemMeta();
+        meta.setDisplayName(ChatColor.DARK_PURPLE + "Booster Stick");
+        item.setItemMeta(meta);
         inventory.addItem(item);
 
         item = new ItemStack(Material.DIAMOND_SPADE);
