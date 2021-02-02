@@ -23,6 +23,8 @@ public class PlayerDeathListener implements Listener {
         if (game.getPlayer(event.getEntity()).getRole() == Role.JUGGERNAUT) {
             Bukkit.broadcastMessage(chaserWinMsg);
             game.endGame();
+        } else {
+            game.getJuggernaut().updateScoreboardKills();
         }
     }
 
