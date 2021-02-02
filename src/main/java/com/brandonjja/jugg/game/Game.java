@@ -188,7 +188,7 @@ public class Game {
             }
 
             gamePlayerList.clear();
-        }, 10 * 20);
+        }, 8 * 20);
     }
 
     public boolean isGracePeriod() {
@@ -206,6 +206,18 @@ public class Game {
         return null;
     }
 
+    public PlayerJT getJuggernaut() {
+        return gamePlayerList.get(juggernautName);
+    }
+
+    public void updateJuggernaut(String name) {
+        for (PlayerJT player : gamePlayerList.values()) {
+            player.updateScoreboardJuggernautName(name);
+        }
+        juggernautName = name;
+
+    }
+
     public void addPlayer(Player player) {
         if (gamePlayerList != null) {
             Role role = Role.CHASER;
@@ -219,6 +231,7 @@ public class Game {
 
     public void removePlayer(Player player) {
         if (gamePlayerList != null) {
+            gamePlayerList.get(player.getName()).setPlayer(null);
             gamePlayerList.remove(player.getName());
         }
     }
