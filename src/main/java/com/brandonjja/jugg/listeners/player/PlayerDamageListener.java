@@ -1,8 +1,10 @@
 package com.brandonjja.jugg.listeners.player;
 
+import com.brandonjja.jugg.JuggernautTakedown;
 import com.brandonjja.jugg.game.Game;
 import com.brandonjja.jugg.game.PlayerJT;
 import com.brandonjja.jugg.game.Role;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
@@ -38,6 +40,9 @@ public class PlayerDamageListener implements Listener {
             Entity shooter = (Entity) ((Arrow) event.getDamager()).getShooter();
             if (shooter instanceof Player) {
                 damager = (Player) shooter;
+                Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
+                    game.getPlayer(damager).updateArrowsHit();
+                }, 1);
             } else {
                 return;
             }
