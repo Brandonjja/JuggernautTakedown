@@ -87,7 +87,7 @@ public class PlayerJT {
             objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName()).setScore(9);
             objective.getScore(" ").setScore(8);
             objective.getScore(arrowAccuracyPrefix + getArrowAccuracy() + "%").setScore(7);
-            objective.getScore(killsPrefix + deaths).setScore(3);
+            objective.getScore(killsPrefix + kills).setScore(3);
         } else {
             objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName()).setScore(8);
             objective.getScore(" ").setScore(7);
