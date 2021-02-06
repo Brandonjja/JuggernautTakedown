@@ -1,6 +1,7 @@
 package com.brandonjja.jugg.game;
 
 import com.brandonjja.jugg.JuggernautTakedown;
+import com.brandonjja.jugg.nms.NMSUtils;
 import com.brandonjja.jugg.utils.FileManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -69,6 +70,7 @@ public class Game {
         Bukkit.broadcastMessage(ChatColor.GREEN + "A new " + ChatColor.YELLOW + "Juggernaut Takedown " + ChatColor.GREEN + "game is starting!");
         Bukkit.broadcastMessage(ChatColor.LIGHT_PURPLE + "Loading Map... Please Wait (:");
 
+        NMSUtils.removeOceans();
         gameWorld = FileManager.generateNewWorld();
         Location spawnLocation = gameWorld.getSpawnLocation();
         spawnLocation.setY(spawnLocation.getWorld().getHighestBlockYAt(spawnLocation));
@@ -95,7 +97,6 @@ public class Game {
         }
 
         gracePeriodID = Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
-            // TODO: start game timer, give scoreboards
             List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
             Collections.shuffle(playerList);
 
