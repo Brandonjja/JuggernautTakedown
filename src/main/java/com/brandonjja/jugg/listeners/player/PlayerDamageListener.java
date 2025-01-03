@@ -14,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class PlayerDamageListener implements Listener {
 
@@ -38,42 +39,48 @@ public class PlayerDamageListener implements Listener {
         Player victim = (Player) event.getEntity();
         if (arrow) {
             Entity shooter = (Entity) ((Arrow) event.getDamager()).getShooter();
-            if (shooter instanceof Player) {
-                damager = (Player) shooter;
-                Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
-                    game.getPlayer(damager).updateArrowsHit();
-                }, 1);
-            } else {
+            if (!(shooter instanceof Player)) {
                 return;
             }
+
+            damager = (Player) shooter;
+            Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
+                PlayerJT jtPlayer = game.getPlayer(damager);
+                if (jtPlayer != null) {
+                    jtPlayer.updateArrowsHit();
+                }
+            }, 1);
         } else {
             damager = (Player) event.getDamager();
         }
 
         PlayerJT jtDamager = game.getPlayer(damager);
+        if (jtDamager == null) {
+            return;
+        }
+
         PlayerJT jtVictim = game.getPlayer(victim);
+        if (jtVictim == null) {
+            return;
+        }
 
         ItemStack weapon = damager.getItemInHand();
+        boolean hitWithBoosterStick = isItemBoosterStick(weapon);
 
         if (jtDamager.getRole() == Role.CHASER && jtVictim.getRole() == Role.CHASER) {
-            if (weapon.hasItemMeta() && weapon.getItemMeta().hasDisplayName()) {
-                if (weapon.getItemMeta().getDisplayName().contains("Booster Stick")) {
-                    event.setDamage(0);
-                    return;
-                }
+            if (hitWithBoosterStick) {
+                event.setDamage(0);
+                return;
             }
+
             event.setCancelled(true);
             return;
         }
 
-        if (jtDamager.getRole() == Role.CHASER && jtVictim.getRole() == Role.JUGGERNAUT) {
-            if (weapon.hasItemMeta() && weapon.getItemMeta().hasDisplayName()) {
-                if (weapon.getItemMeta().getDisplayName().contains("Booster Stick")) {
-                    event.setCancelled(true);
-                    damager.sendMessage(ChatColor.RED + "You cannot hit the Juggernaut with your Booster Stick!");
-                    return;
-                }
-            }
+        if (hitWithBoosterStick && jtDamager.getRole() == Role.CHASER && jtVictim.getRole() == Role.JUGGERNAUT) {
+            event.setCancelled(true);
+            damager.sendMessage(ChatColor.RED + "You cannot hit the Juggernaut with your Booster Stick!");
+            return;
         }
 
         double damage = event.getDamage();
@@ -87,5 +94,18 @@ public class PlayerDamageListener implements Listener {
         if (game == null || game.isGracePeriod()) {
             event.setCancelled(true);
         }
+    }
+
+    private boolean isItemBoosterStick(ItemStack weapon) {
+        if (!weapon.hasItemMeta()) {
+            return false;
+        }
+
+        ItemMeta weaponItemMeta = weapon.getItemMeta();
+        if (!weaponItemMeta.hasDisplayName()) {
+            return false;
+        }
+
+        return weaponItemMeta.getDisplayName().contains("Booster Stick");
     }
 }

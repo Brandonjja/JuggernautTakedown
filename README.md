@@ -7,7 +7,7 @@ and take down the Juggernaut with your team before time runs out?
 
 **Juggernaut** - There is only 1 Juggernaut per game. This role is equipped with full diamond
 armor, a diamond sword, and enchanted bow. Equipment and weapons become more powerful with
-an increased amount of players (Chasers). See the *Tiers* section for more information about equipment.
+an increased amount of players (Chasers).
 
 To win as the Juggernaut, you must survive the onslaught of Chasers for a set amount of time.
 If you are able to stay alive for the entire round, you win the game! You are more powerful
@@ -21,7 +21,3 @@ swarm the Juggernaut as a team.
 To win as a Chaser, you must cooperate with your team to kill the Juggernaut. Chasers can respawn indefinitely,
 however, you must take down the Juggernaut before time runs out. If successful, you and your team will
 be victorious!
-
-## Tiers
-
-*TODO*

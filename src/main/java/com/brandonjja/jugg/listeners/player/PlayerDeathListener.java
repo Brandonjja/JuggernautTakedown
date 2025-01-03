@@ -1,6 +1,7 @@
 package com.brandonjja.jugg.listeners.player;
 
 import com.brandonjja.jugg.game.Game;
+import com.brandonjja.jugg.game.PlayerJT;
 import com.brandonjja.jugg.game.Role;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -11,31 +12,50 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 
 public class PlayerDeathListener implements Listener {
 
-    private final String chaserWinMsg = ChatColor.GREEN + "The " + ChatColor.RED + "Chasers" + ChatColor.GREEN
-            + " win this round! Congratulations!\n" + "The Juggernaut never stood a chance...";
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         event.getDrops().clear();
-        Game game = Game.getGame();
-        if (game == null) return;
 
-        game.getPlayer(event.getEntity()).updateScoreboardDeaths();
-        if (game.getPlayer(event.getEntity()).getRole() == Role.JUGGERNAUT) {
-            Bukkit.broadcastMessage(chaserWinMsg);
-            game.endGame();
-        } else {
-            game.getJuggernaut().updateScoreboardKills();
+        Game game = Game.getGame();
+        if (game == null) {
+            return;
         }
+
+        PlayerJT jtPlayer = game.getPlayer(event.getEntity());
+        if (jtPlayer == null) {
+            return;
+        }
+
+        jtPlayer.updateScoreboardDeaths();
+
+        if (jtPlayer.getRole() == Role.JUGGERNAUT) {
+            Bukkit.broadcastMessage(ChatColor.GREEN + "The " + ChatColor.RED + "Chasers" + ChatColor.GREEN + " win this round! Congratulations!\n" + "The Juggernaut never stood a chance...");
+            game.endGame();
+            return;
+        }
+
+        PlayerJT juggernaut = game.getJuggernaut();
+        if (juggernaut == null) {
+            return;
+        }
+
+        juggernaut.updateScoreboardKills();
     }
 
     @EventHandler
-    public void onRespawn(PlayerRespawnEvent event) {
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
         Game game = Game.getGame();
-        if (game == null) return;
-
-        if (!game.isGracePeriod()) game.getPlayer(event.getPlayer()).applyRoleKit();
+        if (game == null) {
+            return;
+        }
 
         event.setRespawnLocation(game.getSpawnLocation());
-        game.getPlayer(event.getPlayer()).applyRoleKit();
+
+        PlayerJT jtPlayer = game.getPlayer(event.getPlayer());
+        if (jtPlayer == null) {
+            return;
+        }
+
+        jtPlayer.applyRoleKit();
     }
 }

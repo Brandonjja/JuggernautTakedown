@@ -3,7 +3,6 @@ package com.brandonjja.jugg.listeners;
 import com.brandonjja.jugg.game.Game;
 import com.brandonjja.jugg.game.PlayerJT;
 import com.brandonjja.jugg.game.Role;
-import org.apache.commons.lang.ObjectUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -15,55 +14,58 @@ import org.bukkit.event.player.PlayerInteractEvent;
 
 public class CompassClickListener implements Listener {
 
-    private Player track(Player tracker) {
+    @EventHandler
+    public void onTrackPlayer(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (player.getItemInHand().getType() != Material.COMPASS) {
+            return;
+        }
+
+        Player target = getClosestTarget(player);
+        if (target != null) {
+            Location targetLocation = target.getLocation();
+            player.setCompassTarget(targetLocation);
+            player.sendMessage(ChatColor.GREEN + "Currently Tracking: " + ChatColor.AQUA + target.getName());
+            return;
+        }
+
+        player.sendMessage(ChatColor.RED + "No players found!");
+    }
+
+    private Player getClosestTarget(Player tracker) {
+        Game game = Game.getGame();
+        if (game == null) {
+            return null;
+        }
+
         double minDistanceFound = Double.POSITIVE_INFINITY;
         Player target = null;
 
         for (Player potentialPlayerTarget : Bukkit.getOnlinePlayers()) {
-            PlayerJT jtPlayer;
-            try {
-                jtPlayer = Game.getGame().getPlayer(potentialPlayerTarget);
-                if (jtPlayer == null) {
-                    return null;
-                }
-            } catch (NullPointerException ex) {
-                return null;
-            }
-
-            if (potentialPlayerTarget.equals(tracker) || jtPlayer.getRole() != Role.JUGGERNAUT) {
+            if (potentialPlayerTarget.equals(tracker)) {
                 continue;
             }
+
+            PlayerJT jtPlayer = game.getPlayer(potentialPlayerTarget);
+            if (jtPlayer == null || jtPlayer.getRole() != Role.JUGGERNAUT) {
+                continue;
+            }
+
             double distanceTo;
             try {
-                distanceTo = tracker.getLocation().distance(potentialPlayerTarget.getLocation());
+                distanceTo = tracker.getLocation().distanceSquared(potentialPlayerTarget.getLocation());
             } catch (IllegalArgumentException ex) {
                 distanceTo = Double.POSITIVE_INFINITY;
             }
+
             if (distanceTo > minDistanceFound) {
                 continue;
             }
+
             minDistanceFound = distanceTo;
             target = potentialPlayerTarget;
         }
-        if (target == null || minDistanceFound == Double.POSITIVE_INFINITY) {
-            return null;
-        } else {
-            return target;
-        }
-    }
 
-    @EventHandler
-    public void onTrack(PlayerInteractEvent e) {
-        Player player = e.getPlayer();
-        if (player.getItemInHand().getType() == Material.COMPASS) {
-            Player target = track(player);
-            if (target != null) {
-                Location loc = target.getLocation();
-                player.setCompassTarget(loc);
-                player.sendMessage(ChatColor.GREEN + "Currently Tracking: " + ChatColor.AQUA + target.getName());
-            } else {
-                player.sendMessage(ChatColor.RED + "No players found!");
-            }
-        }
+        return (target == null || minDistanceFound == Double.POSITIVE_INFINITY) ? null : target;
     }
 }

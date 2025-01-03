@@ -2,6 +2,7 @@ package com.brandonjja.jugg.commands.handler;
 
 import com.brandonjja.jugg.commands.JuggernautTakedownCommand;
 import com.brandonjja.jugg.game.Game;
+import com.brandonjja.jugg.game.PlayerJT;
 import com.brandonjja.jugg.game.Role;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,26 +15,35 @@ import org.bukkit.potion.PotionEffect;
 
 public class ChaserCommand extends JuggernautTakedownCommand {
 
-    private final String chaserString = ChatColor.GREEN + "You are now a " + ChatColor.AQUA + "Chaser";
-    private final static int numOfGoldenApples = 4, numOfNotchApples = 2;
-    private final static int numOfPlanks = 64 * 4;
+    private static final int GOLDEN_APPLE_AMOUNT = 4;
+    private static final int NOTCH_APPLE_AMOUNT = 2;
+    private static final int PLANKS_AMOUNT = 64 * 4;
 
     @Override
     public boolean execute(Player player, String[] args) {
         if (!player.isOp()) {
             return false;
         }
+
         Game game = Game.getGame();
-        if(game == null) return false;
-        game.getPlayer(player).setRole(Role.CHASER);
-        game.getPlayer(player).addScoreboard(game.getTime());
+        if (game == null) {
+            return false;
+        }
+
+        PlayerJT jtPlayer = game.getPlayer(player);
+        if (jtPlayer == null) {
+            return false;
+        }
+
+        jtPlayer.setRole(Role.CHASER);
+        jtPlayer.addScoreboard(game.getTime());
         giveChaserItems(player);
 
         for (PotionEffect potionEffect : player.getActivePotionEffects()) {
             player.removePotionEffect(potionEffect.getType());
         }
 
-        player.sendMessage(chaserString);
+        player.sendMessage(ChatColor.GREEN + "You are now a " + ChatColor.AQUA + "Chaser");
         return true;
     }
 
@@ -70,14 +80,14 @@ public class ChaserCommand extends JuggernautTakedownCommand {
         item.addEnchantment(Enchantment.DEPTH_STRIDER, 1);
         inventory.setBoots(item);
 
-        item = new ItemStack(Material.GOLDEN_APPLE, numOfNotchApples);
+        item = new ItemStack(Material.GOLDEN_APPLE, NOTCH_APPLE_AMOUNT);
         item.setDurability((short) 1); // Notch Apple
         meta = item.getItemMeta();
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Notch Apple");
         item.setItemMeta(meta);
         inventory.addItem(item);
 
-        item = new ItemStack(Material.GOLDEN_APPLE, numOfGoldenApples);
+        item = new ItemStack(Material.GOLDEN_APPLE, GOLDEN_APPLE_AMOUNT);
         meta = item.getItemMeta();
         meta.setDisplayName(ChatColor.YELLOW + "Golden Apple");
         item.setItemMeta(meta);
@@ -86,7 +96,7 @@ public class ChaserCommand extends JuggernautTakedownCommand {
         item = new ItemStack(Material.COOKED_BEEF, 64);
         inventory.addItem(item);
 
-        item = new ItemStack(Material.WOOD, numOfPlanks);
+        item = new ItemStack(Material.WOOD, PLANKS_AMOUNT);
         inventory.addItem(item);
 
         item = new ItemStack(Material.STICK);

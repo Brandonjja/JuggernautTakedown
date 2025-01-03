@@ -9,17 +9,21 @@ import org.bukkit.event.player.PlayerQuitEvent;
 public class PlayerConnectionListener implements Listener {
 
     @EventHandler
-    public void onLeave(PlayerQuitEvent event) {
+    public void onPlayerQuit(PlayerQuitEvent event) {
         Game game = Game.getGame();
-        if (game == null) return;
+        if (game == null) {
+            return;
+        }
 
         game.removePlayer(event.getPlayer());
     }
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         Game game = Game.getGame();
-        if (game == null) return;
+        if (game == null) {
+            return;
+        }
 
         game.addPlayer(event.getPlayer());
     }

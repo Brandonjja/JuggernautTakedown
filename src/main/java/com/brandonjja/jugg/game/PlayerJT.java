@@ -1,5 +1,6 @@
 package com.brandonjja.jugg.game;
 
+import com.brandonjja.jugg.JuggernautTakedown;
 import com.brandonjja.jugg.commands.handler.ChaserCommand;
 import com.brandonjja.jugg.commands.handler.JuggernautCommand;
 import org.bukkit.Bukkit;
@@ -9,10 +10,22 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
+import javax.annotation.Nullable;
+import java.util.UUID;
+import java.util.logging.Level;
+
 public class PlayerJT {
-    private Player player;
+
+    private static final String APPLES_PREFIX = ChatColor.GREEN + "Apples Eaten: " + ChatColor.WHITE;
+    private static final String DEATHS_PREFIX = ChatColor.GREEN + "Deaths: " + ChatColor.WHITE;
+    private static final String DAMAGE_DEALT_PREFIX = ChatColor.GREEN + "Damage Dealt: " + ChatColor.WHITE;
+    private static final String DAMAGE_TAKEN_PREFIX = ChatColor.GREEN + "Damage Taken: " + ChatColor.WHITE;
+    private static final String TIME_PREFIX = ChatColor.YELLOW + "Time: " + ChatColor.WHITE;
+    private static final String KILLS_PREFIX = ChatColor.GREEN + "Kills: " + ChatColor.WHITE;
+    private static final String ARROW_ACCURACY_PREFIX = ChatColor.GREEN + "Arrow Accuracy: " + ChatColor.WHITE;
+
+    private UUID playerUuid;
     private Role role;
-    private Scoreboard scoreboard;
     private Objective objective;
 
     private int applesEaten;
@@ -24,7 +37,7 @@ public class PlayerJT {
     private float shotsHit;
 
     public PlayerJT(Player player, Role role) {
-        this.player = player;
+        this.playerUuid = player.getUniqueId();
         this.role = role;
         this.applesEaten = 0;
         this.deaths = 0;
@@ -43,8 +56,16 @@ public class PlayerJT {
         return role;
     }
 
-    /** Gives kit items to the player based on what role they are */
+    /**
+     * Gives kit items to the player based on what role they are
+     */
     public void applyRoleKit() {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) {
+            JuggernautTakedown.getPlugin().getLogger().log(Level.WARNING, String.format("Tried to give role items to an offline player: %s", playerUuid));
+            return;
+        }
+
         if (role == Role.JUGGERNAUT) {
             JuggernautCommand.giveJuggernautItems(player);
         } else {
@@ -52,95 +73,102 @@ public class PlayerJT {
         }
     }
 
+    @Nullable
     public Player getPlayer() {
-        return player;
+        return Bukkit.getPlayer(playerUuid);
     }
 
     public void setPlayer(Player player) {
-        this.player = player;
+        this.playerUuid = player == null ? null : player.getUniqueId();
     }
 
-    private String getArrowAccuracy() {
-        return shotsTaken == 0 ? "0.00" : String.format("%.2f", (shotsHit / shotsTaken) * 100);
-    }
-
-    private final String applesPrefix = ChatColor.GREEN + "Apples Eaten: " + ChatColor.WHITE;
-    private final String deathsPrefix = ChatColor.GREEN + "Deaths: " + ChatColor.WHITE;
-    private final String damageDealtPrefix = ChatColor.GREEN + "Damage Dealt: " + ChatColor.WHITE;
-    private final String damageTakenPrefix = ChatColor.GREEN + "Damage Taken: " + ChatColor.WHITE;
-    private final String timePrefix = ChatColor.YELLOW + "Time: " + ChatColor.WHITE;
-
-    private final String killsPrefix = ChatColor.GREEN + "Kills: " + ChatColor.WHITE;
-    private final String arrowAccuracyPrefix = ChatColor.GREEN + "Arrow Accuracy: " + ChatColor.WHITE;
     public void addScoreboard(int startingTime) {
-        /*if (scoreboard != null) {
-            player.setScoreboard(scoreboard);
-            return;
-        }*/
-
-        scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
         objective = scoreboard.registerNewObjective("juggernaut", "dummy");
-        objective.setDisplayName(ChatColor.YELLOW + "" + ChatColor.BOLD + "Juggernaut Takedown");
+        objective.setDisplayName(ChatColor.YELLOW + ChatColor.BOLD.toString() + "Juggernaut Takedown");
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         if (role == Role.JUGGERNAUT) {
             objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName()).setScore(9);
             objective.getScore(" ").setScore(8);
-            objective.getScore(arrowAccuracyPrefix + getArrowAccuracy() + "%").setScore(7);
-            objective.getScore(killsPrefix + kills).setScore(3);
+            objective.getScore(ARROW_ACCURACY_PREFIX + getArrowAccuracy() + "%").setScore(7);
+            objective.getScore(KILLS_PREFIX + kills).setScore(3);
         } else {
             objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName()).setScore(8);
             objective.getScore(" ").setScore(7);
-            objective.getScore(deathsPrefix + deaths).setScore(3);
+            objective.getScore(DEATHS_PREFIX + deaths).setScore(3);
         }
 
-        objective.getScore(applesPrefix + applesEaten).setScore(6);
-        objective.getScore(damageDealtPrefix + damageDealt).setScore(5);
-        objective.getScore(damageTakenPrefix + damageTaken).setScore(4);
-
+        objective.getScore(APPLES_PREFIX + applesEaten).setScore(6);
+        objective.getScore(DAMAGE_DEALT_PREFIX + damageDealt).setScore(5);
+        objective.getScore(DAMAGE_TAKEN_PREFIX + damageTaken).setScore(4);
 
         objective.getScore("  ").setScore(2);
 
-        objective.getScore(timePrefix + formatTime(startingTime)).setScore(1);
+        objective.getScore(TIME_PREFIX + formatTime(startingTime)).setScore(1);
 
-        player.setScoreboard(scoreboard);
+        Player player = getPlayer();
+        if (player != null) {
+            player.setScoreboard(scoreboard);
+        }
     }
 
     public void updateScoreboardApples() {
-        objective.getScoreboard().resetScores(applesPrefix + applesEaten);
-        objective.getScore(applesPrefix + ++applesEaten).setScore(6);
+        objective.getScoreboard().resetScores(APPLES_PREFIX + applesEaten);
+        objective.getScore(APPLES_PREFIX + ++applesEaten).setScore(6);
     }
 
     public void updateScoreboardDamageDealt(double damage) {
-        objective.getScoreboard().resetScores(damageDealtPrefix + damageDealt);
+        objective.getScoreboard().resetScores(DAMAGE_DEALT_PREFIX + damageDealt);
         damageDealt += damage;
-        objective.getScore(damageDealtPrefix + damageDealt).setScore(5);
+        objective.getScore(DAMAGE_DEALT_PREFIX + damageDealt).setScore(5);
     }
 
     public void updateScoreboardDamageTaken(double damage) {
-        objective.getScoreboard().resetScores(damageTakenPrefix + damageTaken);
+        objective.getScoreboard().resetScores(DAMAGE_TAKEN_PREFIX + damageTaken);
         damageTaken += damage;
-        objective.getScore(damageTakenPrefix + damageTaken).setScore(4);
+        objective.getScore(DAMAGE_TAKEN_PREFIX + damageTaken).setScore(4);
     }
 
     public void updateScoreboardDeaths() {
         if (role == Role.CHASER) {
-            objective.getScoreboard().resetScores(deathsPrefix + deaths);
-            objective.getScore(deathsPrefix + ++deaths).setScore(3);
+            objective.getScoreboard().resetScores(DEATHS_PREFIX + deaths);
+            objective.getScore(DEATHS_PREFIX + ++deaths).setScore(3);
         }
     }
 
     public void updateScoreboardKills() {
         if (role == Role.JUGGERNAUT) {
-            objective.getScoreboard().resetScores(killsPrefix + kills);
-            objective.getScore(killsPrefix + ++kills).setScore(3);
+            objective.getScoreboard().resetScores(KILLS_PREFIX + kills);
+            objective.getScore(KILLS_PREFIX + ++kills).setScore(3);
         }
     }
 
     public void updateScoreboardTime(int time) {
         time++;
-        objective.getScoreboard().resetScores(timePrefix + formatTime(time));
-        objective.getScore(timePrefix + formatTime(--time)).setScore(1);
+        objective.getScoreboard().resetScores(TIME_PREFIX + formatTime(time));
+        objective.getScore(TIME_PREFIX + formatTime(--time)).setScore(1);
+    }
+
+    public void updateArrowsShot() {
+        if (role == Role.JUGGERNAUT) {
+            objective.getScoreboard().resetScores(ARROW_ACCURACY_PREFIX + getArrowAccuracy() + "%");
+            shotsTaken++;
+            objective.getScore(ARROW_ACCURACY_PREFIX + getArrowAccuracy() + "%").setScore(7);
+        }
+    }
+
+    public void updateArrowsHit() {
+        if (role == Role.JUGGERNAUT) {
+            objective.getScoreboard().resetScores(ARROW_ACCURACY_PREFIX + getArrowAccuracy() + "%");
+            shotsHit++;
+            objective.getScore(ARROW_ACCURACY_PREFIX + getArrowAccuracy() + "%").setScore(7);
+        }
+    }
+
+    public void updateScoreboardJuggernautName(String name) {
+        objective.getScoreboard().resetScores(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName());
+        objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + name).setScore(9);
     }
 
     private String formatTime(int time) {
@@ -149,30 +177,8 @@ public class PlayerJT {
         return String.format("%02d:%02d", minutes, time);
     }
 
-    public void updateArrowsShot() {
-        if (role == Role.JUGGERNAUT) {
-            objective.getScoreboard().resetScores(arrowAccuracyPrefix + getArrowAccuracy() + "%");
-            shotsTaken++;
-            objective.getScore(arrowAccuracyPrefix + getArrowAccuracy() + "%").setScore(7);
-        }
-    }
-
-    public void updateArrowsHit() {
-        if (role == Role.JUGGERNAUT) {
-            objective.getScoreboard().resetScores(arrowAccuracyPrefix + getArrowAccuracy() + "%");
-            shotsHit++;
-            objective.getScore(arrowAccuracyPrefix + getArrowAccuracy() + "%").setScore(7);
-        }
-    }
-
-    public void updateScoreboardJuggernautName(String name) {
-        if (role == Role.JUGGERNAUT) {
-            objective.getScoreboard().resetScores(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName());
-            objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + name).setScore(9);
-        } else {
-            objective.getScoreboard().resetScores(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + Game.getGame().getJuggernautName());
-            objective.getScore(ChatColor.RED + "Juggernaut: " + ChatColor.AQUA + name).setScore(9);
-        }
+    private String getArrowAccuracy() {
+        return shotsTaken == 0 ? "0.00" : String.format("%.2f", (shotsHit / shotsTaken) * 100);
     }
 
 }

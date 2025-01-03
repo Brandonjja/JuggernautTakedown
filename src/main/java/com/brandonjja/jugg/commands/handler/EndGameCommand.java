@@ -18,10 +18,10 @@ public class EndGameCommand extends JuggernautTakedownCommand {
         if (game != null) {
             Bukkit.broadcastMessage(ChatColor.RED + "Game forced to end, please wait.");
             game.endGame();
-        } else {
-            player.sendMessage(ChatColor.RED + "No current game");
+            return true;
         }
 
+        player.sendMessage(ChatColor.RED + "No current game");
         return true;
     }
 }

@@ -3,16 +3,18 @@ package com.brandonjja.jugg.game;
 import org.bukkit.ChatColor;
 
 public enum Role {
-    JUGGERNAUT("Juggernaut"), CHASER("Chaser");
 
-    private final String name;
+    JUGGERNAUT("Juggernaut"),
+    CHASER("Chaser");
 
-    Role(String name) {
-        this.name = name;
+    private final String cleanName;
+
+    Role(String cleanName) {
+        this.cleanName = cleanName;
     }
 
     @Override
     public String toString() {
-        return ChatColor.AQUA + this.name;
+        return ChatColor.AQUA + this.cleanName;
     }
 }

@@ -11,14 +11,23 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.*;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Game {
+
+    private final static int GRACE_PERIOD = 10; // time in seconds until roles are assigned once a game has started
+    private final static String GRACE_MSG = ChatColor.YELLOW + "The Grace Period has begun. You now have " + ChatColor.RED + GRACE_PERIOD + ChatColor.YELLOW + " seconds to spread out!";
+    private final static String JUGGERNAUT_ROLE_MSG = ChatColor.GREEN + "You are now a " + Role.JUGGERNAUT;
+    private final static String CHASER_ROLE_MSG = ChatColor.GREEN + "You are now a " + Role.CHASER;
 
     private static Game currentGame;
 
     private final int chaserCount; // number of chasers
-    private final static int gracePeriod = 10; // time until roles are assigned once a game has started
     private int gameTimer; // time until the game ends
     private String currentMap; // name of the current map
     private final Map<String, PlayerJT> gamePlayerList; // list of players in the current game
@@ -30,7 +39,7 @@ public class Game {
 
     private String juggernautName;
 
-    public Game(String mapName) {
+    private Game(String mapName) {
         if (currentGame != null) {
             endGame();
         }
@@ -42,10 +51,6 @@ public class Game {
 
         gamePlayerList = new HashMap<>();
         startGame();
-    }
-
-    public int getChaserCount() {
-        return chaserCount;
     }
 
     public static void setGame(Game game) {
@@ -60,106 +65,27 @@ public class Game {
         setGame(new Game(mapName));
     }
 
-    private final static String juggernautRoleMsg = ChatColor.GREEN + "You are now a " + Role.JUGGERNAUT.toString();
-    private final static String chaserRoleMsg = ChatColor.GREEN + "You are now a " + Role.CHASER.toString();
-    private final static String graceMsg = ChatColor.YELLOW + "The Grace Period has begun. You now have " + ChatColor.RED
-            + gracePeriod + ChatColor.YELLOW + " seconds to spread out!";
-
-    private void startGame() {
-
-        Bukkit.broadcastMessage(ChatColor.GREEN + "A new " + ChatColor.YELLOW + "Juggernaut Takedown " + ChatColor.GREEN + "game is starting!");
-        Bukkit.broadcastMessage(ChatColor.LIGHT_PURPLE + "Loading Map... Please Wait (:");
-
-        NMSUtils.removeOceans();
-        gameWorld = FileManager.generateNewWorld();
-        Location spawnLocation = gameWorld.getSpawnLocation();
-        spawnLocation.setY(spawnLocation.getWorld().getHighestBlockYAt(spawnLocation));
-        spawnLocation.getWorld().getWorldBorder().setSize(500);
-        gameWorld.setSpawnLocation(spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ());
-
-        currentMap = gameWorld.getName();
-
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.teleport(spawnLocation);
-            player.setHealth(20);
-            player.setFoodLevel(20);
-            player.sendMessage(graceMsg);
-
-            player.getInventory().clear();
-            player.getInventory().setHelmet(null);
-            player.getInventory().setChestplate(null);
-            player.getInventory().setLeggings(null);
-            player.getInventory().setBoots(null);
-
-            for (PotionEffect potionEffect : player.getActivePotionEffects()) {
-                player.removePotionEffect(potionEffect.getType());
-            }
-        }
-
-        gracePeriodID = Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
-            List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
-            Collections.shuffle(playerList);
-
-            gamePlayerList.put(playerList.get(0).getName(), new PlayerJT(playerList.get(0), Role.JUGGERNAUT));
-            playerList.get(0).sendMessage(juggernautRoleMsg);
-            gamePlayerList.get(playerList.get(0).getName()).applyRoleKit();
-            juggernautName = playerList.get(0).getName();
-            gamePlayerList.get(playerList.get(0).getName()).addScoreboard(gameTimer);
-            playerList.get(0).addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 1000000, 0));
-
-            for (int i = 1; i <= chaserCount; i++) {
-                gamePlayerList.put(playerList.get(i).getName(), new PlayerJT(playerList.get(i), Role.CHASER));
-                playerList.get(i).sendMessage(chaserRoleMsg);
-                gamePlayerList.get(playerList.get(i).getName()).applyRoleKit();
-                gamePlayerList.get(playerList.get(i).getName()).addScoreboard(gameTimer);
-            }
-
-            isGracePeriod = false;
-
-            gameTimerID = Bukkit.getScheduler().scheduleSyncRepeatingTask(JuggernautTakedown.getPlugin(), () -> {
-                if (--gameTimer <= 0) {
-                    endGame();
-                }
-
-                for (PlayerJT jtPlayer : gamePlayerList.values()) {
-                    jtPlayer.updateScoreboardTime(gameTimer);
-                    if (jtPlayer.getRole() == Role.JUGGERNAUT) {
-                        jtPlayer.getPlayer().setRemainingAir(jtPlayer.getPlayer().getRemainingAir() / 2);
-                    }
-                }
-
-            }, 20, 20);
-
-
-        }, (long) (gracePeriod * 20) + 20);
-    }
-
-    private final StringBuilder juggernautWinMsg = new StringBuilder()
-            .append(ChatColor.GREEN)
-            .append("Congratulations to the ")
-            .append(ChatColor.RED)
-            .append("Juggernaut")
-            .append(ChatColor.GREEN)
-            .append(" (");
-
     public void endGame() {
         if (gracePeriodID > 0) {
             Bukkit.getScheduler().cancelTask(gracePeriodID);
             gracePeriodID = -1;
         }
+
         if (gameTimerID > 0) {
             Bukkit.getScheduler().cancelTask(gameTimerID);
             gameTimerID = -1;
         }
 
-        if (currentGame == null) return;
+        if (currentGame == null) {
+            return;
+        }
 
         if (gameTimer <= 0) {
-            juggernautWinMsg.append(ChatColor.AQUA)
-                    .append(juggernautName)
-                    .append(ChatColor.GREEN)
-                    .append(") on surviving this round!\nChasers, better luck next time!");
-            Bukkit.broadcastMessage(juggernautWinMsg.toString());
+            String juggernautWinMessage = ChatColor.GREEN + "Congratulations to the " + ChatColor.RED + "Juggernaut"
+                    + ChatColor.GREEN + " (" + ChatColor.AQUA + juggernautName + ChatColor.GREEN
+                    + ") on surviving this round!\nChasers, better luck next time!";
+
+            Bukkit.broadcastMessage(juggernautWinMessage);
         }
 
         isGracePeriod = true;
@@ -200,41 +126,54 @@ public class Game {
         return gameTimer;
     }
 
+    @Nullable
     public PlayerJT getPlayer(Player player) {
-        if (gamePlayerList != null) {
-            return gamePlayerList.get(player.getName());
-        }
-        return null;
+        return gamePlayerList == null ? null : gamePlayerList.get(player.getName());
     }
 
+    @Nullable
     public PlayerJT getJuggernaut() {
-        return gamePlayerList.get(juggernautName);
+        return gamePlayerList == null ? null : gamePlayerList.get(juggernautName);
     }
 
     public void updateJuggernaut(String name) {
+        if (gamePlayerList == null) {
+            throw new NullPointerException("Game player list wasn't created!");
+        }
+
         for (PlayerJT player : gamePlayerList.values()) {
             player.updateScoreboardJuggernautName(name);
         }
-        juggernautName = name;
 
+        juggernautName = name;
     }
 
     public void addPlayer(Player player) {
-        if (gamePlayerList != null) {
-            Role role = Role.CHASER;
-            if (player.getName().equalsIgnoreCase(juggernautName)) {
-                role = Role.JUGGERNAUT;
-            }
-            gamePlayerList.put(player.getName(), new PlayerJT(player, role));
+        if (gamePlayerList == null) {
+            throw new NullPointerException("Game player list wasn't created!");
         }
-        gamePlayerList.get(player.getName()).addScoreboard(gameTimer);
+
+        Role role = Role.CHASER;
+        if (player.getName().equalsIgnoreCase(juggernautName)) {
+            role = Role.JUGGERNAUT;
+        }
+
+        PlayerJT jtPlayer = new PlayerJT(player, role);
+        jtPlayer.addScoreboard(gameTimer);
+        gamePlayerList.put(player.getName(), jtPlayer);
     }
 
     public void removePlayer(Player player) {
-        if (gamePlayerList != null) {
-            gamePlayerList.get(player.getName()).setPlayer(null);
-            gamePlayerList.remove(player.getName());
+        if (gamePlayerList == null) {
+            return;
         }
+
+        PlayerJT jtPlayer = gamePlayerList.remove(player.getName());
+        if (jtPlayer == null) {
+            return;
+        }
+
+        jtPlayer.setPlayer(null);
     }
 
     public Location getSpawnLocation() {
@@ -243,5 +182,85 @@ public class Game {
 
     public String getJuggernautName() {
         return juggernautName;
+    }
+
+    private void startGame() {
+        Bukkit.broadcastMessage(ChatColor.GREEN + "A new " + ChatColor.YELLOW + "Juggernaut Takedown " + ChatColor.GREEN + "game is starting!");
+        Bukkit.broadcastMessage(ChatColor.LIGHT_PURPLE + "Loading Map... Please Wait (:");
+
+        NMSUtils.removeOceans();
+        gameWorld = FileManager.generateNewWorld();
+        Location spawnLocation = gameWorld.getSpawnLocation();
+        spawnLocation.setY(spawnLocation.getWorld().getHighestBlockYAt(spawnLocation));
+        spawnLocation.getWorld().getWorldBorder().setSize(500);
+        gameWorld.setSpawnLocation(spawnLocation.getBlockX(), spawnLocation.getBlockY(), spawnLocation.getBlockZ());
+
+        currentMap = gameWorld.getName();
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.teleport(spawnLocation);
+            player.setHealth(20);
+            player.setFoodLevel(20);
+            player.sendMessage(GRACE_MSG);
+
+            player.getInventory().clear();
+            player.getInventory().setHelmet(null);
+            player.getInventory().setChestplate(null);
+            player.getInventory().setLeggings(null);
+            player.getInventory().setBoots(null);
+
+            for (PotionEffect potionEffect : player.getActivePotionEffects()) {
+                player.removePotionEffect(potionEffect.getType());
+            }
+        }
+
+        gracePeriodID = Bukkit.getScheduler().scheduleSyncDelayedTask(JuggernautTakedown.getPlugin(), () -> {
+            List<Player> playerList = new ArrayList<>(Bukkit.getOnlinePlayers());
+            Collections.shuffle(playerList);
+
+            Player firstPlayer = playerList.get(0);
+            String firstPlayerName = firstPlayer.getName();
+            PlayerJT juggernaut = new PlayerJT(firstPlayer, Role.JUGGERNAUT);
+            gamePlayerList.put(firstPlayerName, juggernaut);
+
+            firstPlayer.sendMessage(JUGGERNAUT_ROLE_MSG);
+            firstPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 1_000_000, 0));
+
+            juggernaut.applyRoleKit();
+            juggernaut.addScoreboard(gameTimer);
+
+            juggernautName = firstPlayerName;
+
+            for (int i = 1; i <= chaserCount; i++) {
+                Player chaser = playerList.get(i);
+                PlayerJT jtChaser = new PlayerJT(chaser, Role.CHASER);
+                gamePlayerList.put(chaser.getName(), jtChaser);
+                chaser.sendMessage(CHASER_ROLE_MSG);
+                jtChaser.applyRoleKit();
+                jtChaser.addScoreboard(gameTimer);
+            }
+
+            isGracePeriod = false;
+
+            gameTimerID = Bukkit.getScheduler().scheduleSyncRepeatingTask(JuggernautTakedown.getPlugin(), () -> {
+                if (--gameTimer <= 0) {
+                    endGame();
+                }
+
+                for (PlayerJT jtPlayer : gamePlayerList.values()) {
+                    jtPlayer.updateScoreboardTime(gameTimer);
+                    if (jtPlayer.getRole() != Role.JUGGERNAUT) {
+                        continue;
+                    }
+
+                    Player juggernautPlayer = jtPlayer.getPlayer();
+                    if (juggernautPlayer != null) {
+                        juggernautPlayer.setRemainingAir(juggernautPlayer.getRemainingAir() / 2);
+                    }
+                }
+
+            }, 20, 20);
+
+        }, (long) (GRACE_PERIOD * 20) + 20);
     }
 }
